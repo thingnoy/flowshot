@@ -3,6 +3,8 @@
 Flow-based visual regression dashboard for Playwright.
 One command, one HTML file — screenshots connected as user flows with diff slider.
 
+![Dashboard Dark](assets/dashboard-dark.png)
+
 ## Why
 
 Existing visual regression tools show screenshots as flat galleries. Flowshot shows them as **user flows** — screens connected with arrows, so you see the journey, not just the pages.
@@ -29,6 +31,24 @@ npx playwright test e2e/visual.spec.ts
 # 5. Generate report
 npx flowshot
 ```
+
+## Screenshots
+
+### Flow View — Dark Theme
+
+![Dashboard Dark](assets/dashboard-dark.png)
+
+### Flow View — Light Theme
+
+![Dashboard Light](assets/dashboard-light.png)
+
+### Single Flow Detail
+
+![Flow Detail](assets/flow-detail.png)
+
+### Diff Mode
+
+![Diff Mode](assets/diff-mode.png)
 
 ## Config
 
@@ -87,20 +107,6 @@ flowshot report --open      # generate and open in browser
 flowshot report --inline    # embed images as base64 (portable for CI)
 flowshot report --collect   # collect diffs before generating
 ```
-
-## Dashboard Features
-
-**Flow View** — screenshots arranged left-to-right with arrows showing navigation order. Each flow shows step numbers, screen labels, and route paths.
-
-**Diff Mode** — click the Diff button to see:
-- Green (OK) / Red (CHANGED) badges on each screen
-- Drag slider to compare expected vs actual side-by-side
-- Summary bar with change counts
-- Lightbox with Expected / Actual / Diff toggle
-
-**Sidebar** — filter by flow, see screen counts, warning icons on flows with changes.
-
-**Theme** — dark (default) / light toggle, persisted in localStorage.
 
 ## CI Usage
 
