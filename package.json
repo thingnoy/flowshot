@@ -1,0 +1,43 @@
+{
+  "name": "flowshot",
+  "version": "0.1.0",
+  "description": "Flow-based visual regression dashboard for Playwright. One command, one HTML file — screenshots connected as user flows with diff slider.",
+  "keywords": [
+    "playwright",
+    "visual-regression",
+    "screenshot",
+    "testing",
+    "user-flow",
+    "dashboard",
+    "diff"
+  ],
+  "license": "MIT",
+  "author": "skypart",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/skypart/flowshot"
+  },
+  "bin": {
+    "flowshot": "bin/flowshot.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts src/cli.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts src/cli.ts --format cjs,esm --dts --watch",
+    "prepublishOnly": "npm run build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.7.0"
+  }
+}
