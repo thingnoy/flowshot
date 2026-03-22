@@ -3,7 +3,7 @@
 Flow-based visual regression dashboard for Playwright.
 One command, one HTML file — screenshots connected as user flows with diff slider.
 
-![Dashboard Dark](assets/dashboard-dark.png)
+![Dashboard Dark](https://raw.githubusercontent.com/thingnoy/flowshot/main/assets/dashboard-dark.png)
 
 ## Why
 
@@ -36,19 +36,19 @@ npx flowshot
 
 ### Flow View — Dark Theme
 
-![Dashboard Dark](assets/dashboard-dark.png)
+![Dashboard Dark](https://raw.githubusercontent.com/thingnoy/flowshot/main/assets/dashboard-dark.png)
 
 ### Flow View — Light Theme
 
-![Dashboard Light](assets/dashboard-light.png)
+![Dashboard Light](https://raw.githubusercontent.com/thingnoy/flowshot/main/assets/dashboard-light.png)
 
 ### Single Flow Detail
 
-![Flow Detail](assets/flow-detail.png)
+![Flow Detail](https://raw.githubusercontent.com/thingnoy/flowshot/main/assets/flow-detail.png)
 
 ### Diff Mode
 
-![Diff Mode](assets/diff-mode.png)
+![Diff Mode](https://raw.githubusercontent.com/thingnoy/flowshot/main/assets/diff-mode.png)
 
 ## Config
 

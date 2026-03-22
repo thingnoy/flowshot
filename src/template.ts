@@ -204,6 +204,13 @@ export function generateTemplate(
     }
     .compare-labels .lbl-expected { background:rgba(63,185,80,0.85); color:#fff; }
     .compare-labels .lbl-actual { background:rgba(248,81,73,0.85); color:#fff; }
+    .fullscreen-btn {
+      position:absolute; top:8px; right:8px; width:32px; height:32px;
+      background:rgba(0,0,0,0.6); color:#fff; border:none; border-radius:6px;
+      font-size:16px; cursor:pointer; z-index:5;
+      display:flex; align-items:center; justify-content:center; transition:background 0.2s;
+    }
+    .fullscreen-btn:hover { background:var(--accent); }
 
     .diff-summary {
       background: var(--surface); border:1px solid var(--border);
@@ -222,6 +229,39 @@ export function generateTemplate(
     }
     .lightbox.open { display:flex; }
     .lightbox img { max-width:90vw; max-height:90vh; border-radius:12px; }
+    .lightbox-compare {
+      position:relative; overflow:hidden; border-radius:12px;
+      box-shadow:0 4px 32px rgba(0,0,0,0.4); user-select:none; touch-action:none; cursor:default;
+    }
+    .lightbox-compare img {
+      display:block; max-height:85vh; width:auto; pointer-events:none;
+      box-shadow:none; border-radius:0;
+    }
+    .lightbox-compare .compare-actual { position:absolute; top:0; left:0; overflow:hidden; }
+    .lightbox-compare .compare-slider {
+      position:absolute; top:0; bottom:0; width:3px;
+      background:var(--accent); cursor:ew-resize; z-index:3;
+    }
+    .lightbox-compare .compare-slider::after {
+      content:''; position:absolute; top:50%; left:50%;
+      transform:translate(-50%,-50%); width:36px; height:36px;
+      background:var(--accent); border-radius:50%; border:3px solid #fff;
+      box-shadow:0 2px 12px rgba(0,0,0,0.4);
+    }
+    .lightbox-compare .compare-slider::before {
+      content:'\\25C0 \\25B6'; position:absolute; top:50%; left:50%;
+      transform:translate(-50%,-50%); color:#fff; font-size:10px; z-index:4;
+      white-space:nowrap; letter-spacing:2px;
+    }
+    .lightbox-compare .compare-labels {
+      position:absolute; bottom:12px; left:0; right:0;
+      display:flex; justify-content:space-between; padding:0 16px;
+      z-index:2; pointer-events:none;
+    }
+    .lightbox-compare .compare-labels span {
+      font-size:13px; font-weight:700; padding:4px 12px; border-radius:6px;
+      text-transform:uppercase;
+    }
     .lightbox-label {
       position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
       color:#fff; font-size:14px; font-weight:600;
@@ -258,6 +298,7 @@ export function generateTemplate(
   <div class="lightbox" id="lightbox" onclick="closeLightbox()">
     <div class="lightbox-controls" id="lightbox-controls" style="display:none" onclick="event.stopPropagation()"></div>
     <img id="lightbox-img" src="" alt="">
+    <div class="lightbox-compare" id="lightbox-compare" style="display:none" onclick="event.stopPropagation()"></div>
     <div class="lightbox-label" id="lightbox-label"></div>
   </div>
 
@@ -354,6 +395,7 @@ export function generateTemplate(
           if (isDiff) {
             var actSrc = img('actual', step.screen, currentView);
             html += '<div class="compare-container" style="width:' + w + 'px">' +
+              '<button class="fullscreen-btn" onclick="event.stopPropagation();openLightbox(\\'' + step.screen + '\\',\\'' + currentView + '\\',\\'' + step.label + '\\')" title="Fullscreen compare">&#x26F6;</button>' +
               '<img src="' + src + '" alt="Expected" class="' + currentView + '" style="width:' + w + 'px">' +
               '<div class="compare-actual" style="width:' + (w/2) + 'px">' +
               '<img src="' + actSrc + '" alt="Actual" class="' + currentView + '" style="width:' + w + 'px">' +
@@ -442,30 +484,85 @@ export function generateTemplate(
       lbMeta = { screen: screen, view: view, label: label };
       var lb = document.getElementById('lightbox');
       var controls = document.getElementById('lightbox-controls');
+      var lbImg = document.getElementById('lightbox-img');
+      var lbCompare = document.getElementById('lightbox-compare');
       var isDiff = diffMode && hasDiff(screen, view);
       if (isDiff) {
         controls.style.display = 'flex';
-        controls.innerHTML = ['expected','actual','diff'].map(function(t) {
+        controls.innerHTML = ['compare','expected','actual','diff'].map(function(t) {
           return '<button onclick="lightboxView(\\'' + t + '\\')">' +
             t.charAt(0).toUpperCase() + t.slice(1) + '</button>';
         }).join('');
-        lightboxView('expected');
+        lightboxView('compare');
       } else {
         controls.style.display = 'none';
-        document.getElementById('lightbox-img').src = img('expected', screen, view);
+        lbCompare.style.display = 'none';
+        lbImg.style.display = '';
+        lbImg.src = img('expected', screen, view);
         document.getElementById('lightbox-label').textContent = label + ' (' + view + ')';
       }
       lb.classList.add('open');
     }
     function lightboxView(type) {
-      document.getElementById('lightbox-img').src = img(type, lbMeta.screen, lbMeta.view);
-      document.getElementById('lightbox-label').textContent =
-        lbMeta.label + ' \\u2014 ' + type + ' (' + lbMeta.view + ')';
+      var lbImg = document.getElementById('lightbox-img');
+      var lbCompare = document.getElementById('lightbox-compare');
       document.querySelectorAll('#lightbox-controls button').forEach(function(b) {
         b.classList.toggle('active', b.textContent.toLowerCase() === type);
       });
+      if (type === 'compare') {
+        lbImg.style.display = 'none';
+        lbCompare.style.display = '';
+        var expSrc = img('expected', lbMeta.screen, lbMeta.view);
+        var actSrc = img('actual', lbMeta.screen, lbMeta.view);
+        lbCompare.innerHTML = '<img src="' + expSrc + '" alt="Expected" id="lb-compare-base">' +
+          '<div class="compare-actual" id="lb-compare-clip"><img src="' + actSrc + '" alt="Actual"></div>' +
+          '<div class="compare-slider" id="lb-compare-slider"></div>' +
+          '<div class="compare-labels"><span class="lbl-expected">Expected</span><span class="lbl-actual">Actual</span></div>';
+        document.getElementById('lightbox-label').textContent = lbMeta.label + ' \\u2014 compare (' + lbMeta.view + ')';
+        var baseImg = document.getElementById('lb-compare-base');
+        baseImg.onload = function() {
+          var w = baseImg.offsetWidth;
+          var clip = document.getElementById('lb-compare-clip');
+          var slider = document.getElementById('lb-compare-slider');
+          clip.style.width = (w/2) + 'px';
+          clip.querySelector('img').style.width = w + 'px';
+          slider.style.left = (w/2) + 'px';
+          initLightboxSlider();
+        };
+      } else {
+        lbImg.style.display = '';
+        lbCompare.style.display = 'none';
+        lbImg.src = img(type, lbMeta.screen, lbMeta.view);
+        document.getElementById('lightbox-label').textContent =
+          lbMeta.label + ' \\u2014 ' + type + ' (' + lbMeta.view + ')';
+      }
     }
-    function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
+    function initLightboxSlider() {
+      var container = document.getElementById('lightbox-compare');
+      var slider = document.getElementById('lb-compare-slider');
+      var clip = document.getElementById('lb-compare-clip');
+      if (!container || !slider || !clip) return;
+      var baseImg = document.getElementById('lb-compare-base');
+      var w = baseImg.offsetWidth;
+      var dragging = false;
+      function update(x) {
+        var rect = container.getBoundingClientRect();
+        var pos = Math.max(0, Math.min(w, x - rect.left));
+        slider.style.left = pos + 'px';
+        clip.style.width = pos + 'px';
+      }
+      slider.onmousedown = function(e) { dragging = true; e.preventDefault(); e.stopPropagation(); };
+      slider.ontouchstart = function(e) { dragging = true; e.preventDefault(); e.stopPropagation(); };
+      document.addEventListener('mousemove', function(e) { if (dragging) { update(e.clientX); e.stopPropagation(); } });
+      document.addEventListener('touchmove', function(e) { if (dragging) { update(e.touches[0].clientX); e.stopPropagation(); } });
+      document.addEventListener('mouseup', function() { dragging = false; });
+      document.addEventListener('touchend', function() { dragging = false; });
+      container.onclick = function(e) { update(e.clientX); e.stopPropagation(); };
+    }
+    function closeLightbox() {
+      document.getElementById('lightbox').classList.remove('open');
+      document.getElementById('lightbox-compare').innerHTML = '';
+    }
     document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeLightbox(); });
 
     function getTheme() { return localStorage.getItem('flowshot-theme') || 'dark'; }
