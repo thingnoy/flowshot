@@ -114,7 +114,7 @@ export function generateTemplate(
     }
     .flow-desc { font-size:13px; color: var(--text-muted); margin-left:auto; }
 
-    .flow-row { display:flex; align-items:center; gap:0; overflow-x:auto; padding:20px 0; }
+    .flow-row { display:flex; align-items:center; gap:0; overflow-x:auto; padding:20px 16px; }
 
     .screen-card {
       flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:10px;
@@ -139,7 +139,7 @@ export function generateTemplate(
       font-family: 'SF Mono', Monaco, monospace;
     }
     .screen-step {
-      position:absolute; top:-8px; left:-8px; width:24px; height:24px;
+      position:absolute; top:-12px; left:-12px; width:24px; height:24px;
       background: var(--accent); color:#fff; border-radius:50%;
       font-size:12px; font-weight:700; display:flex; align-items:center;
       justify-content:center; box-shadow: 0 2px 6px var(--accent-glow);
