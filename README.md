@@ -183,11 +183,62 @@ Flowshot expects Playwright snapshots named as:
 
 For example: `home-mobile-chromium-darwin.png`, `auth-desktop-chromium-darwin.png`
 
+## Auto-Detect Flows
+
+Flowshot can automatically discover your app's screens and generate flows — two ways:
+
+### `flowshot detect` — from test files + snapshots (no running app needed)
+
+Scans your Playwright snapshot directory and test files to find screens and build flows:
+
+```bash
+flowshot detect              # preview detected flows
+flowshot detect --write      # create flowshot.config.json from detected
+flowshot detect --merge      # add new flows to existing config
+```
+
+How it works:
+1. Scans `e2e/visual.spec.ts-snapshots/` for screenshot files
+2. Parses `e2e/*.spec.ts` for `page.goto()` and `toHaveScreenshot()` patterns
+3. Groups screens by section (heal-your-heart, know-your-self, etc.)
+4. Detects component screenshots (header, footer)
+
+### `flowshot crawl` — by actually browsing your app with Playwright
+
+Opens your app in a real browser, finds links, clicks them, takes screenshots:
+
+```bash
+# Start your app first, then:
+flowshot crawl --url http://localhost:3000
+
+# Options:
+flowshot crawl --url http://localhost:3000 --mobile       # mobile viewport
+flowshot crawl --url http://localhost:3000 --max-pages 20 # limit pages
+flowshot crawl --url http://localhost:3000 --max-depth 2  # limit link depth
+flowshot crawl --url http://localhost:3000 --write         # save to config
+```
+
+How it works:
+1. Opens the URL in Playwright Chromium
+2. Finds all `<a href>` links on the page
+3. Visits each link, takes a screenshot
+4. Follows links from discovered pages (up to max-depth)
+5. Groups pages by URL section into flows
+6. Screenshots saved to `.flowshot/crawl-snapshots/`
+
+Requires `playwright` as a peer dependency: `npm i -D playwright`
+
+### `flowshot init` — smart init
+
+When you run `flowshot init`, it automatically tries `detect` first. If snapshots exist, it generates config from them. Otherwise, creates an example config.
+
 ## Commands
 
 ```bash
 flowshot              # collect diffs + generate report + open browser
-flowshot init         # create flowshot.config.json
+flowshot init         # auto-detect flows or create example config
+flowshot detect       # detect flows from snapshots + test files
+flowshot crawl        # discover pages by crawling your app
 flowshot collect      # collect diff images from test-results/
 flowshot report       # generate HTML report
 flowshot report --open      # generate and open in browser
