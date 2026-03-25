@@ -27,7 +27,7 @@
     "bin"
   ],
   "scripts": {
-    "build": "tsup src/index.ts src/cli.ts --format cjs,esm --dts --clean",
+    "build": "tsup src/index.ts src/cli.ts --format cjs,esm --dts --clean --external playwright",
     "dev": "tsup src/index.ts src/cli.ts --format cjs,esm --dts --watch",
     "prepublishOnly": "npm run build",
     "typecheck": "tsc --noEmit",
@@ -36,11 +36,20 @@
     "release:minor": "./scripts/release.sh minor",
     "release:major": "./scripts/release.sh major"
   },
+  "peerDependencies": {
+    "playwright": ">=1.40.0"
+  },
+  "peerDependenciesMeta": {
+    "playwright": {
+      "optional": true
+    }
+  },
   "dependencies": {
     "commander": "^12.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "playwright": "^1.58.2",
     "tsup": "^8.3.0",
     "typescript": "^5.7.0"
   }

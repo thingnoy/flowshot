@@ -117,6 +117,57 @@ program
     }
   })
 
+// ─── crawl ───
+program
+  .command('crawl')
+  .description('Crawl app with Playwright — discover pages, take screenshots, generate flows')
+  .requiredOption('--url <url>', 'Base URL of the running app (e.g. http://localhost:3000)')
+  .option('--max-pages <n>', 'Max pages to visit', '20')
+  .option('--max-depth <n>', 'Max link depth to follow', '3')
+  .option('--mobile', 'Use mobile viewport (375x812)', false)
+  .option('--write', 'Write discovered flows to flowshot.config.json')
+  .action(async (opts) => {
+    const { crawlApp } = await import('./crawl')
+    const cwd = process.cwd()
+    const outDir = join(cwd, '.flowshot')
+
+    const viewport = opts.mobile
+      ? { width: 375, height: 812 }
+      : { width: 1440, height: 900 }
+
+    const { pages, flows } = await crawlApp({
+      baseUrl: opts.url,
+      outDir,
+      maxPages: parseInt(opts.maxPages),
+      maxDepth: parseInt(opts.maxDepth),
+      viewport,
+    })
+
+    console.log('')
+    for (const flow of flows) {
+      const steps = flow.steps.map(s => s.label).join(' \u2192 ')
+      console.log(`  ${flow.name} (${flow.steps.length} screens)`)
+      console.log(`    ${steps}`)
+    }
+
+    if (opts.write) {
+      const config = {
+        snapshotDir: '.flowshot/crawl-snapshots',
+        testResultsDir: 'test-results',
+        platform: 'crawl',
+        views: [opts.mobile ? 'mobile' : 'desktop'],
+        outDir: '.flowshot',
+        flows,
+        components: [],
+      }
+      const configPath = join(cwd, 'flowshot.config.json')
+      writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n')
+      console.log(`\n\u2705 Written to flowshot.config.json`)
+      console.log(`   Screenshots: .flowshot/crawl-snapshots/`)
+      console.log(`   Run: flowshot report --open`)
+    }
+  })
+
 // ─── collect ───
 program
   .command('collect')
