@@ -40,6 +40,8 @@ export async function crawlApp(options: CrawlOptions): Promise<{
     waitMs = 2000,
   } = options
 
+  const viewportLabel = viewport.width <= 480 ? 'Mobile' : 'Desktop'
+
   // Dynamic import — Playwright is a peer dependency
   let playwright: any
   try {
@@ -88,7 +90,7 @@ export async function crawlApp(options: CrawlOptions): Promise<{
 
       // Take screenshot
       const screenshotName = pathToScreenName(normalizedPath)
-      const screenshotPath = join(snapshotDir, `${screenshotName}.png`)
+      const screenshotPath = join(snapshotDir, `${screenshotName}-${viewportLabel.toLowerCase()}.png`)
       await page.screenshot({ path: screenshotPath })
 
       // Find all internal links
@@ -137,10 +139,13 @@ export async function crawlApp(options: CrawlOptions): Promise<{
 
   await browser.close()
 
-  // Build flows from navigation graph
-  const flows = buildFlowsFromCrawl(pages)
+  // Build flows from navigation graph, prefixed with viewport
+  const flows = buildFlowsFromCrawl(pages).map(f => ({
+    ...f,
+    name: `[${viewportLabel}] ${f.name}`,
+  }))
 
-  console.log(`\n\u2705 Crawled ${pages.length} pages, generated ${flows.length} flows`)
+  console.log(`\n\u2705 Crawled ${pages.length} pages, generated ${flows.length} flows (${viewportLabel})`)
 
   return { pages, flows, components: [] }
 }
