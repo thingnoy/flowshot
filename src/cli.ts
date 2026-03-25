@@ -1,9 +1,11 @@
 import { Command } from 'commander'
-import { existsSync } from 'node:fs'
-import { resolve } from 'node:path'
-import { createConfig, loadConfig } from './config'
+import { existsSync, writeFileSync, readFileSync } from 'node:fs'
+import { resolve, join } from 'node:path'
+import { createConfig, loadConfig, configExists } from './config'
 import { collectDiffs } from './collect'
 import { generateReport } from './report'
+import { detectFlows } from './detect'
+import type { FlowshotConfig } from './types'
 
 const pkg = { version: '0.1.0' }
 
@@ -19,18 +21,99 @@ const program = new Command()
 program
   .command('init')
   .description('Create flowshot.config.json with example flows')
-  .action(() => {
+  .option('--detect', 'Auto-detect flows from Playwright tests (default)')
+  .action((opts) => {
     const cwd = process.cwd()
-    const result = createConfig(cwd)
-    if (result.startsWith('Config already')) {
-      console.log(`\u26A0  ${result}`)
+
+    if (configExists(cwd)) {
+      console.log(`\u26A0  Config already exists: ${join(cwd, 'flowshot.config.json')}`)
+      return
+    }
+
+    // Try auto-detect first
+    const { flows, components, screens } = detectFlows(cwd, {})
+
+    if (screens.length > 0) {
+      const config = {
+        snapshotDir: 'e2e/visual.spec.ts-snapshots',
+        testResultsDir: 'test-results',
+        platform: 'chromium-darwin',
+        views: ['mobile', 'desktop'],
+        outDir: '.flowshot',
+        flows,
+        components,
+      }
+      // writeFileSync imported at top
+      writeFileSync(
+        join(cwd, 'flowshot.config.json'),
+        JSON.stringify(config, null, 2) + '\n'
+      )
+      console.log(`\u2705 Auto-detected ${screens.length} screens, ${flows.length} flows`)
+      console.log(`   Written to flowshot.config.json`)
     } else {
-      console.log(`\u2705 Created ${result}`)
-      console.log('')
-      console.log('Next steps:')
-      console.log('  1. Edit flowshot.config.json — define your flows')
-      console.log('  2. Run your Playwright visual tests')
-      console.log('  3. Run: flowshot report')
+      const result = createConfig(cwd)
+      console.log(`\u2705 Created ${result} with example flows`)
+      console.log('   Edit flowshot.config.json to define your flows')
+    }
+
+    console.log('')
+    console.log('Next: Run your Playwright visual tests, then: flowshot')
+  })
+
+// ─── detect ───
+program
+  .command('detect')
+  .description('Auto-detect flows from Playwright tests and snapshots')
+  .option('--write', 'Write detected flows to flowshot.config.json')
+  .option('--merge', 'Merge detected flows into existing config')
+  .action((opts) => {
+    const cwd = process.cwd()
+    const partialConfig: Partial<FlowshotConfig> = configExists(cwd) ? loadConfig(cwd) : {}
+    const { flows, components, screens } = detectFlows(cwd, partialConfig)
+
+    console.log(`\uD83D\uDD0D Detected ${screens.length} screens, ${flows.length} flows, ${components.length} components`)
+    console.log('')
+
+    for (const flow of flows) {
+      const steps = flow.steps.map(s => s.label).join(' \u2192 ')
+      console.log(`  ${flow.name} (${flow.steps.length} screens)`)
+      console.log(`    ${steps}`)
+    }
+
+    if (components.length > 0) {
+      console.log(`\n  Components: ${components.map(c => c.label).join(', ')}`)
+    }
+
+    if (opts.write || opts.merge) {
+      const configPath = join(cwd, 'flowshot.config.json')
+
+      let config: any
+      if (opts.merge && configExists(cwd)) {
+        config = JSON.parse(readFileSync(configPath, 'utf-8'))
+        // Add new flows that don't exist yet
+        const existingNames = new Set(config.flows.map((f: any) => f.name))
+        const newFlows = flows.filter(f => !existingNames.has(f.name))
+        config.flows.push(...newFlows)
+        if (!config.components) config.components = []
+        const existingComps = new Set(config.components.map((c: any) => c.screen))
+        const newComps = components.filter(c => !existingComps.has(c.screen))
+        config.components.push(...newComps)
+        console.log(`\n\u2705 Merged ${newFlows.length} new flows, ${newComps.length} new components`)
+      } else {
+        config = {
+          snapshotDir: partialConfig.snapshotDir || 'e2e/visual.spec.ts-snapshots',
+          testResultsDir: partialConfig.testResultsDir || 'test-results',
+          platform: partialConfig.platform || 'chromium-darwin',
+          views: partialConfig.views || ['mobile', 'desktop'],
+          outDir: partialConfig.outDir || '.flowshot',
+          flows,
+          components,
+        }
+        console.log(`\n\u2705 Written ${flows.length} flows to flowshot.config.json`)
+      }
+      writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n')
+    } else {
+      console.log('\nRun with --write to save, or --merge to add to existing config')
     }
   })
 
