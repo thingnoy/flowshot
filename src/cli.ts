@@ -125,7 +125,8 @@ program
   .option('--max-pages <n>', 'Max pages to visit', '20')
   .option('--max-depth <n>', 'Max link depth to follow', '3')
   .option('--mobile', 'Use mobile viewport (375x812)', false)
-  .option('--write', 'Write discovered flows to flowshot.config.json')
+  .option('--write', 'Write discovered flows to flowshot.config.json (overwrites)')
+  .option('--merge', 'Merge discovered flows into existing config')
   .action(async (opts) => {
     const { crawlApp } = await import('./crawl')
     const cwd = process.cwd()
@@ -150,19 +151,29 @@ program
       console.log(`    ${steps}`)
     }
 
-    if (opts.write) {
-      const config = {
-        snapshotDir: '.flowshot/crawl-snapshots',
-        testResultsDir: 'test-results',
-        platform: 'crawl',
-        views: [opts.mobile ? 'mobile' : 'desktop'],
-        outDir: '.flowshot',
-        flows,
-        components: [],
-      }
+    if (opts.write || opts.merge) {
       const configPath = join(cwd, 'flowshot.config.json')
-      writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n')
-      console.log(`\n\u2705 Written to flowshot.config.json`)
+
+      if (opts.merge && existsSync(configPath)) {
+        const existing = JSON.parse(readFileSync(configPath, 'utf-8'))
+        const existingNames = new Set(existing.flows.map((f: any) => f.name))
+        const newFlows = flows.filter(f => !existingNames.has(f.name))
+        existing.flows.push(...newFlows)
+        writeFileSync(configPath, JSON.stringify(existing, null, 2) + '\n')
+        console.log(`\n\u2705 Merged ${newFlows.length} new flows (${existing.flows.length} total)`)
+      } else {
+        const config = {
+          snapshotDir: '.flowshot/crawl-snapshots',
+          testResultsDir: 'test-results',
+          platform: 'crawl',
+          views: [opts.mobile ? 'mobile' : 'desktop'],
+          outDir: '.flowshot',
+          flows,
+          components: [],
+        }
+        writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n')
+        console.log(`\n\u2705 Written ${flows.length} flows to flowshot.config.json`)
+      }
       console.log(`   Screenshots: .flowshot/crawl-snapshots/`)
       console.log(`   Run: flowshot report --open`)
     }
